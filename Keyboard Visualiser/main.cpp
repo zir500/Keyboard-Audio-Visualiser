@@ -4,8 +4,8 @@ HRESULT getDefaultDevice(IMMDevice** ppDevice)
 {
 	HRESULT hr = S_OK;
 	ScopedIMMDeviceEnumerator enumerator();
-	hr = enumerator().pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, ppDevice);
-	EXIT_IF_FAIL("GetDefaultAudioEndpoint ", hr)
+	hr = enumerator.pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, ppDevice);
+	EXIT_ON_ERROR("GetDefaultAudioEndpoint ", hr)
 	return hr;
 }
 

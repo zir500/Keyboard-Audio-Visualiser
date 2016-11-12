@@ -6,4 +6,4 @@
 #define ERR(FORMAT, ...) wprintf(L"[ ERROR ] " FORMAT L"\n", __VA_ARGS__)
 #define EHR(MESSAGE, HRES) wprintf(L"[ ERROR ] " MESSAGE L" HRESULT = 0x%08x", HRES)
 
-#define EXIT_IF_FAIL(message, hr) if(FAILED(hr)){EHR(message, hr); exit(hr);}
+#define EXIT_ON_ERROR(message, hr) if(FAILED(hr)){EHR(message, hr); exit(hr);}

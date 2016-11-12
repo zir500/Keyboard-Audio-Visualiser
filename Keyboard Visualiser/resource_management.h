@@ -8,7 +8,7 @@ public:
 	ScopedCoInitializeEx() {
 		HRESULT hr = S_OK;
 		hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-		EXIT_IF_FAIL("CoInitialise Failed", hr)
+		EXIT_ON_ERROR("CoInitialise Failed", hr)
 	}
 
 	~ScopedCoInitializeEx() {
@@ -40,10 +40,45 @@ public:
 			__uuidof(IMMDeviceEnumerator), 
 			(void**) &pEnumerator);
 
-		EXIT_IF_FAIL("CoCreateInstance for Device Enumerator", hr)
+		EXIT_ON_ERROR("CoCreateInstance for Device Enumerator", hr)
 	}
 
 	~ScopedIMMDeviceEnumerator() {
 		pEnumerator->Release();
 	}
+};
+
+class ScopedIAudioClient {
+public:
+	IAudioClient* pAudioClient;
+
+	ScopedIAudioClient(ScopedIMMDevice* pScopedDevice) {
+		HRESULT hr = S_OK;
+		hr = pScopedDevice->device->Activate(
+			__uuidof(IAudioClient),
+			CLSCTX_ALL,
+			NULL,
+			(void**)pAudioClient
+		);
+		EXIT_ON_ERROR("Activating IAudioClient", hr);
+	}
+
+	HRESULT Start() {
+		isStarted = true;
+		return pAudioClient->Start();
+	}
+
+	HRESULT Stop() {
+		isStarted = false;
+		return pAudioClient->Stop();
+	}
+
+	~ScopedIAudioClient() {
+		if (isStarted) {
+			Stop();
+		}
+		pAudioClient->Release();
+	}
+private:
+	bool isStarted = false;
 };
