@@ -82,3 +82,23 @@ public:
 private:
 	bool isStarted = false;
 };
+
+class ScopedIAudioCaptureClient {
+public:
+	IAudioCaptureClient* pCaptureClient;
+
+
+	ScopedIAudioCaptureClient(ScopedIAudioClient* pScopedAudioClient) {	
+		HRESULT hr = S_OK;
+		hr = pScopedAudioClient->pAudioClient->GetService(
+			__uuidof(IAudioCaptureClient),
+			(void**)pCaptureClient
+		);
+
+		EXIT_ON_ERROR("While getting Capture Client - GetService()", hr)
+	}
+
+	~ScopedIAudioCaptureClient() {
+		pCaptureClient->Release();
+	}
+};
