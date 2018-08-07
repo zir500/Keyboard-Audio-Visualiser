@@ -1,83 +1,77 @@
 #include "common.h"
 #include "capture.h"
 
-
-//Capture Thread - Begins and handles actual capture of audio data before sending it to the fourier and display thread
-void beginCaptureThread(LPVOID pContext) {
+void beginCapture(CComPtr<IMMDevice>& pIMMDevice) {
 	HRESULT hr = S_OK;
 	WAVEFORMATEX* pwfex;
-	REFERENCE_TIME hnsDesiredDuration = REFTIMES_PER_SEC;//(Requested buffer length)
+	REFERENCE_TIME hnsDesiredDuration = REFTIMES_PER_SEC; //(Requested buffer length)
 	REFERENCE_TIME hnsActualDuration; //Actual Buffer Length assigned
-	bool isDone = false;
+	UINT32 numBufferFrames;
 
-	CaptureThreadContext* pArgs = (CaptureThreadContext*)pContext;
+	CComPtr<IAudioClient> pAudioClient;
+	CComPtr<IAudioCaptureClient> pAudioCaptureClient;
+	
+	// Get AudioClient Object
+	hr = pIMMDevice->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, reinterpret_cast<void**>(&pAudioClient));
+	EXIT_ON_ERROR("Activate IMMDevice", hr);
 
-	//Initialize OCM Library
-	ScopedCoInitializeEx captureThreadCoInit();
-
-	//Get an audioClient from the device
-	ScopedIAudioClient scopedAudioClient(pArgs->pScopeddevice);
-
-	hr = scopedAudioClient.pAudioClient->GetMixFormat(&pwfex);
+	hr = pAudioClient->GetMixFormat(&pwfex);
 	EXIT_ON_ERROR("GetMixFormat", hr);
 
-	//Initialize the audio client in loopback mode 
-	hr = scopedAudioClient.pAudioClient->Initialize(
-		AUDCLNT_SHAREMODE_SHARED,
-		AUDCLNT_STREAMFLAGS_LOOPBACK,
-		hnsDesiredDuration,
-		0,
-		pwfex,
-		NULL
-	);
-	EXIT_ON_ERROR("Initialize", hr);
+	//Init AudioClient in Loopback mode
+	hr = pAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK, hnsDesiredDuration, 0, pwfex, NULL);
+	EXIT_ON_ERROR("AudioClient Initialize", hr);
 
-	//Get the actual buffer size 
-	UINT32 numBufferFrames;
-	hr = scopedAudioClient.pAudioClient->GetBufferSize(&numBufferFrames);
-	EXIT_ON_ERROR("GetBufferSize() after initialization", hr);
+	// Find out how much buffer was actually assigned (May be different to desired size)
+	hr = pAudioClient->GetBufferSize(&numBufferFrames);
+	EXIT_ON_ERROR("GetBufferSize", hr);
+	hnsActualDuration = REFTIMES_PER_SEC * numBufferFrames / pwfex->nSamplesPerSec;
 
-	hnsActualDuration = (double)REFTIMES_PER_SEC * numBufferFrames / pwfex->nSamplesPerSec;
+	hr = pAudioClient->GetService(__uuidof(IAudioCaptureClient), reinterpret_cast<void**>(&pAudioCaptureClient));
+	EXIT_ON_ERROR("GetService (AudioCaptureClient)", hr);
 
+	hr = pAudioClient->Start();
+	EXIT_ON_ERROR("AudioClient Start", hr);
 
-	//Get a Capture client
-	ScopedIAudioCaptureClient scopedAudioCaptureClient(&scopedAudioClient);
+	readAudioBuffer(pwfex, hnsActualDuration, numBufferFrames, pAudioCaptureClient);
+}
 
-	hr = scopedAudioClient.Start();
-	EXIT_ON_ERROR("AudioCapture Start()", hr);
-
-
+// blockAlign: The number of bytes for each frame (each sample) this includes both channels
+void readAudioBuffer(WAVEFORMATEX* pwfex, REFERENCE_TIME& hnsActualDuration, UINT32& numBufferFrames, CComPtr<IAudioCaptureClient>& pAudioCaptureClient) {
+	HRESULT hr = S_OK;
+	bool isDone = false;
 	UINT32 packetLength = 0;//Number of frames in a packet
 	BYTE* pFrameData;
 	UINT32 numFramesAvail;
+	UINT32 blockAlign = pwfex->nBlockAlign;
 	DWORD flags;
-	UINT32 blockAlign = pwfex->nBlockAlign; //The number of bytes for each frame (each sample) this includes both channels
 	while (!isDone) {
 		//Main Capture Loop
+		Sleep(hnsActualDuration / REFTIMES_PER_MILLISEC / 2.0);//Allow the buffer to partially fill before we process and empty it.
 
-		Sleep(hnsActualDuration / REFTIMES_PER_MILLISEC / 2);//Allow the buffer to partially fill before we process and empty it.
-
-		hr = scopedAudioCaptureClient.pCaptureClient->GetNextPacketSize(&packetLength);
-		EXIT_ON_ERROR("GetNextPacketSize()", hr)
+		hr = pAudioCaptureClient->GetNextPacketSize(&packetLength);
+		EXIT_ON_ERROR("GetNextPacketSize", hr);
 
 			while (packetLength != 0) {
-				hr = scopedAudioCaptureClient.pCaptureClient->GetBuffer(&pFrameData, &numFramesAvail, &flags, NULL, NULL);
-				EXIT_ON_ERROR("GetBuffer()", hr)
+				Sleep(hnsActualDuration / REFTIMES_PER_MILLISEC / 2.0);//Allow the buffer to partially fill before we process and empty it.
+				hr = pAudioCaptureClient->GetBuffer(&pFrameData, &numFramesAvail, &flags, NULL, NULL);
+				EXIT_ON_ERROR("GetBuffer", hr);
 
-					if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
-						pFrameData = NULL;
-					}
+				if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
+					pFrameData = NULL;
+				}
 
 				//Finally we will send the data to the fourier module.
 				long packetSizeBytes = numFramesAvail * blockAlign;
-				//Copy 'packetSizeBytes' bytes to the fourier thread input  
+				//Copy 'packetSizeBytes' bytes from the pFrameBuffer to the fourier thread input  
 				//Handle any error in copying the data
 
-				hr = scopedAudioCaptureClient.pCaptureClient->ReleaseBuffer(numBufferFrames);
-				EXIT_ON_ERROR("ReleaseBuffer()", hr)
+				hr = pAudioCaptureClient->ReleaseBuffer(numFramesAvail);
+				EXIT_ON_ERROR("ReleaseBuffer", hr);
 
-				hr = scopedAudioCaptureClient.pCaptureClient->GetNextPacketSize(&packetLength);
-				EXIT_ON_ERROR("GetNextPacketSize() after aquiring buffer data", hr)
+				hr = pAudioCaptureClient->GetNextPacketSize(&packetLength);
+				EXIT_ON_ERROR("GetNextPacketSize", hr);
+				isDone = true;
 			}
 	}
 }

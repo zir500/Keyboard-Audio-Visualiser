@@ -4,5 +4,7 @@
 #include <mmdeviceapi.h>
 #include <Audioclient.h>
 
+#include "atlbase.h"
+
 #include "log.h"
 #include "resource_management.h"

@@ -1,10 +1,7 @@
 #pragma once
 
-#define REFTIMES_PER_SEC  10000000 //REFERENCE_TIME is in 100's of ns
-#define REFTIMES_PER_MILLISEC  10000
+#define REFTIMES_PER_SEC  10000000.0l //REFERENCE_TIME is in 100's of ns
+#define REFTIMES_PER_MILLISEC  10000.0l
 
-class CaptureThreadContext {
-public:
-	ScopedIMMDevice* pScopeddevice;
-
-};
+void beginCapture(CComPtr<IMMDevice>& pIMMDevice);
+void readAudioBuffer(UINT32 blockAlign, REFERENCE_TIME& hnsActualDuration, UINT32& numBufferFrames, CComPtr<IAudioCaptureClient>& pAudioCaptureClient);
