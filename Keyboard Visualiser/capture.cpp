@@ -1,10 +1,13 @@
 #include "common.h"
 #include "capture.h"
+#include "fourier.h"
+
+
 
 void beginCapture(CComPtr<IMMDevice>& pIMMDevice) {
 	HRESULT hr = S_OK;
 	WAVEFORMATEX* pwfex;
-	REFERENCE_TIME hnsDesiredDuration = REFTIMES_PER_SEC; //(Requested buffer length)
+	REFERENCE_TIME hnsDesiredDuration = REFTIMES_PER_SEC/1000; //(Requested buffer length)
 	REFERENCE_TIME hnsActualDuration; //Actual Buffer Length assigned
 	UINT32 numBufferFrames;
 
@@ -64,6 +67,7 @@ void readAudioBuffer(WAVEFORMATEX* pwfex, REFERENCE_TIME& hnsActualDuration, UIN
 				//Finally we will send the data to the fourier module.
 				long packetSizeBytes = numFramesAvail * blockAlign;
 				//Copy 'packetSizeBytes' bytes from the pFrameBuffer to the fourier thread input  
+				doFFT(pFrameData, numFramesAvail, pwfex);
 				//Handle any error in copying the data
 
 				hr = pAudioCaptureClient->ReleaseBuffer(numFramesAvail);
@@ -75,3 +79,4 @@ void readAudioBuffer(WAVEFORMATEX* pwfex, REFERENCE_TIME& hnsActualDuration, UIN
 			}
 	}
 }
+

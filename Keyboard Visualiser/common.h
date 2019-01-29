@@ -7,4 +7,3 @@
 #include "atlbase.h"
 
 #include "log.h"
-#include "resource_management.h"

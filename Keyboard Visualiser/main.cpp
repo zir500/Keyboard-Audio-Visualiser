@@ -1,6 +1,7 @@
 #include "common.h"
 #include "Functiondiscoverykeys_devpkey.h"
 #include "capture.h"
+#include "fourier.h"
 
 int wmain(int argc, LPCWSTR argv[]) {
 	HRESULT hr = S_OK;
@@ -28,6 +29,9 @@ int wmain(int argc, LPCWSTR argv[]) {
 	printf("%S", pDefaultDeviceFriendlyName.pwszVal);
 
 	PropVariantClear(&pDefaultDeviceFriendlyName);
+
+	// Prepare FFT Module
+	setupFFT();
 
 	// Capture Data
 	beginCapture(pIMMDevice);

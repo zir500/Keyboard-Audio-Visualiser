@@ -81,7 +81,15 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>E:\Libraries\fftw-3.3.5-dll64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>E:\Libraries\fftw-3.3.5-dll64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /y "E:\Libraries\fftw-3.3.5-dll64\libfftw3f-3.dll" "$(OutDir)libfftw3f-3.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -111,13 +119,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="capture.cpp" />
+    <ClCompile Include="circular_buffer.cpp" />
+    <ClCompile Include="fourier.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="terminal_visuliser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="capture.h" />
+    <ClInclude Include="circular_buffer.h" />
     <ClInclude Include="common.h" />
-    <ClInclude Include="resource_management.h" />
+    <ClInclude Include="fourier.h" />
     <ClInclude Include="log.h" />
+    <ClInclude Include="terminal_visuliser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

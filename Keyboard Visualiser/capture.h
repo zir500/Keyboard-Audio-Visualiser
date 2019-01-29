@@ -4,4 +4,4 @@
 #define REFTIMES_PER_MILLISEC  10000.0l
 
 void beginCapture(CComPtr<IMMDevice>& pIMMDevice);
-void readAudioBuffer(UINT32 blockAlign, REFERENCE_TIME& hnsActualDuration, UINT32& numBufferFrames, CComPtr<IAudioCaptureClient>& pAudioCaptureClient);
+void readAudioBuffer(WAVEFORMATEX* pwfex, REFERENCE_TIME& hnsActualDuration, UINT32& numBufferFrames, CComPtr<IAudioCaptureClient>& pAudioCaptureClient);
